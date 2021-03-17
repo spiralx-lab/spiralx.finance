@@ -1,0 +1,90 @@
+{
+    "Tokens": [
+        {
+            "name": "USDK",
+            "contract": "0x533367b864d9b9aa59d0dcb6554df0c89feef1ff",
+            "baseRatePerYear": "200000000000000000",
+            "multiplierPerYear": "100000000000000000",
+            "jumpMultiplierPerYear": "500000000000000000",
+            "kink_": "500000000000000000",
+            "initialExchangeRate": "1000000000000000000",
+            "initPrice": "1000000000000000000",
+            "collateralFactor": "900000000000000000"
+        },
+        {
+            "name": "BTCK",
+            "contract": "0x09973e7e3914eb5ba69c7c025f30ab9446e3e4e0",
+            "baseRatePerYear": "300000000000000000",
+            "multiplierPerYear": "200000000000000000",
+            "jumpMultiplierPerYear": "400000000000000000",
+            "kink_": "200000000000000000",
+            "initialExchangeRate": "1000000000000000000",
+            "initPrice": "54345000000000000000000",
+            "collateralFactor": "800000000000000000"
+        },
+        {
+            "name": "OKT",
+            "contract": "0x2219845942d28716c0F7C605765fABDcA1a7d9E0",
+            "baseRatePerYear": "300000000000000000",
+            "multiplierPerYear": "400000000000000000",
+            "jumpMultiplierPerYear": "400000000000000000",
+            "kink_": "500000000000000000",
+            "initialExchangeRate": "1000000000000000000",
+            "initPrice": "1201700000000000000000",
+            "collateralFactor": "800000000000000000"
+        },
+        {
+            "name": "OKB",
+            "contract": "0xda9d14072ef2262c64240da3a93fea2279253611",
+            "baseRatePerYear": "500000000000000000",
+            "multiplierPerYear": "200000000000000000",
+            "jumpMultiplierPerYear": "100000000000000000",
+            "kink_": "500000000000000000",
+            "initialExchangeRate": "1000000000000000000",
+            "initPrice": "145700000000000000000",
+            "collateralFactor": "900000000000000000"
+        },
+        {
+            "name": "ETHK",
+            "contract": "0xdf950cecf33e64176ada5dd733e170a56d11478e",
+            "baseRatePerYear": "500000000000000000",
+            "multiplierPerYear": "200000000000000000",
+            "jumpMultiplierPerYear": "100000000000000000",
+            "kink_": "500000000000000000",
+            "initialExchangeRate": "1000000000000000000",
+            "initPrice": "17530400000000000000000",
+            "collateralFactor": "800000000000000000"
+        },
+        {
+            "name": "DOTK",
+            "contract": "0x72f8fa5da80dc6e20e00d02724cf05ebd302c35f",
+            "baseRatePerYear": "500000000000000000",
+            "multiplierPerYear": "200000000000000000",
+            "jumpMultiplierPerYear": "100000000000000000",
+            "kink_": "500000000000000000",
+            "initialExchangeRate": "1000000000000000000",
+            "initPrice": "33350000000000000000",
+            "collateralFactor": "700000000000000000"
+        },
+        {
+            "name": "LTCK",
+            "contract": "0xd616388f6533b6f1c31968a305fbee1727f55850",
+            "baseRatePerYear": "500000000000000000",
+            "multiplierPerYear": "200000000000000000",
+            "jumpMultiplierPerYear": "100000000000000000",
+            "kink_": "500000000000000000",
+            "initialExchangeRate": "1000000000000000000",
+            "initPrice": "197400000000000000000",
+            "collateralFactor": "700000000000000000"
+        }
+    ],
+    "Admins": {
+        "priceOracleAdmin": "0xf7Bb1B76a1ed77891Be0f492CD10Ab0Ee83757cc",
+        "priceOracleFeeder": "0xf7Bb1B76a1ed77891Be0f492CD10Ab0Ee83757cc",
+        "comptrollerAdmin": "0xf7Bb1B76a1ed77891Be0f492CD10Ab0Ee83757cc",
+        "tokenAdmin": "0xf7Bb1B76a1ed77891Be0f492CD10Ab0Ee83757cc"
+    },
+    "userMaxAsset": "10",
+    "closeFactorMantissa": "900000000000000000",
+    "liquidationIncentiveMantissa": "1100000000000000000"
+}

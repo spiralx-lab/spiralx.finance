@@ -1,0 +1,57 @@
+{
+    "Tokens": [
+        {
+            "name": "DAI",
+            "contract": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+            "baseRatePerYear": "200000000000000000",
+            "multiplierPerYear": "100000000000000000",
+            "jumpMultiplierPerYear": "500000000000000000",
+            "kink_": "500000000000000000",
+            "initialExchangeRate": "1000000000000000000",
+            "initPrice": "31629090000000000000000",
+            "collateralFactor": "800000000000000000"
+        },
+        {
+            "name": "WETH",
+            "contract": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+            "baseRatePerYear": "300000000000000000",
+            "multiplierPerYear": "200000000000000000",
+            "jumpMultiplierPerYear": "400000000000000000",
+            "kink_": "200000000000000000",
+            "initialExchangeRate": "1000000000000000000",
+            "initPrice": "1286410000000000000000",
+            "collateralFactor": "800000000000000000"
+        },
+        {
+            "name": "USDC",
+            "contract": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+            "baseRatePerYear": "300000000000000000",
+            "multiplierPerYear": "400000000000000000",
+            "jumpMultiplierPerYear": "400000000000000000",
+            "kink_": "500000000000000000",
+            "initialExchangeRate": "1000000000000000000",
+            "initPrice": "1000000000000000000",
+            "collateralFactor": "900000000000000000"
+        },
+        {
+            "name": "USDT",
+            "contract": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+            "baseRatePerYear": "500000000000000000",
+            "multiplierPerYear": "200000000000000000",
+            "jumpMultiplierPerYear": "100000000000000000",
+            "kink_": "500000000000000000",
+            "initialExchangeRate": "1000000000000000000",
+            "initPrice": "1000000000000000000",
+            "collateralFactor": "900000000000000000"
+        }
+    ],
+    "Admins": {
+        "priceOracleAdmin": "0x1b8cE1d3707524394665a0c7470D9A43D0518C86",
+        "priceOracleFeeder": "0x1b8cE1d3707524394665a0c7470D9A43D0518C86",
+        "comptrollerAdmin": "0x1b8cE1d3707524394665a0c7470D9A43D0518C86",
+        "tokenAdmin": "0x1b8cE1d3707524394665a0c7470D9A43D0518C86"
+    },
+    "userMaxAsset": "10",
+    "closeFactorMantissa": "900000000000000000",
+    "liquidationIncentiveMantissa": "1100000000000000000"
+}
