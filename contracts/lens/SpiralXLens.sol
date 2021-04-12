@@ -205,6 +205,108 @@ contract SpiralXLens {
             });
     }
 
+    struct GovReceipt {
+        uint256 proposalId;
+        bool hasVoted;
+        bool support;
+        uint96 votes;
+    }
+
+    function getGovReceipts(
+        GovernorAlpha governor,
+        address voter,
+        uint256[] memory proposalIds
+    ) public view returns (GovReceipt[] memory) {
+        uint256 proposalCount = proposalIds.length;
+        GovReceipt[] memory res = new GovReceipt[](proposalCount);
+        for (uint256 i = 0; i < proposalCount; i++) {
+            GovernorAlpha.Receipt memory receipt =
+                governor.getReceipt(proposalIds[i], voter);
+            res[i] = GovReceipt({
+                proposalId: proposalIds[i],
+                hasVoted: receipt.hasVoted,
+                support: receipt.support,
+                votes: receipt.votes
+            });
+        }
+        return res;
+    }
+
+    struct GovProposal {
+        uint256 proposalId;
+        address proposer;
+        uint256 eta;
+        address[] targets;
+        uint256[] values;
+        string[] signatures;
+        bytes[] calldatas;
+        uint256 startBlock;
+        uint256 endBlock;
+        uint256 forVotes;
+        uint256 againstVotes;
+        bool canceled;
+        bool executed;
+    }
+
+    function setProposal(
+        GovProposal memory res,
+        GovernorAlpha governor,
+        uint256 proposalId
+    ) internal view {
+        (
+            ,
+            address proposer,
+            uint256 eta,
+            uint256 startBlock,
+            uint256 endBlock,
+            uint256 forVotes,
+            uint256 againstVotes,
+            bool canceled,
+            bool executed
+        ) = governor.proposals(proposalId);
+        res.proposalId = proposalId;
+        res.proposer = proposer;
+        res.eta = eta;
+        res.startBlock = startBlock;
+        res.endBlock = endBlock;
+        res.forVotes = forVotes;
+        res.againstVotes = againstVotes;
+        res.canceled = canceled;
+        res.executed = executed;
+    }
+
+    function getGovProposals(
+        GovernorAlpha governor,
+        uint256[] calldata proposalIds
+    ) external view returns (GovProposal[] memory) {
+        GovProposal[] memory res = new GovProposal[](proposalIds.length);
+        for (uint256 i = 0; i < proposalIds.length; i++) {
+            (
+                address[] memory targets,
+                uint256[] memory values,
+                string[] memory signatures,
+                bytes[] memory calldatas
+            ) = governor.getActions(proposalIds[i]);
+            res[i] = GovProposal({
+                proposalId: 0,
+                proposer: address(0),
+                eta: 0,
+                targets: targets,
+                values: values,
+                signatures: signatures,
+                calldatas: calldatas,
+                startBlock: 0,
+                endBlock: 0,
+                forVotes: 0,
+                againstVotes: 0,
+                canceled: false,
+                executed: false
+            });
+            setProposal(res[i], governor, proposalIds[i]);
+        }
+        return res;
+    }
+
     struct CompBalanceMetadata {
         uint256 balance;
         uint256 votes;
