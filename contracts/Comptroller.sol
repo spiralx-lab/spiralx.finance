@@ -596,7 +596,7 @@ contract Comptroller is
         uint256 borrowBalance =
             CToken(cTokenBorrowed).borrowBalanceStored(borrower);
         uint256 maxClose =
-            mul_ScalarTruncate(
+            mulScalarTruncate(
                 Exp({mantissa: closeFactorMantissa}),
                 borrowBalance
             );
@@ -923,14 +923,14 @@ contract Comptroller is
             );
 
             // sumCollateral += tokensToDenom * cTokenBalance
-            vars.sumCollateral = mul_ScalarTruncateAddUInt(
+            vars.sumCollateral = mulScalarTruncateAddUInt(
                 vars.tokensToDenom,
                 vars.cTokenBalance,
                 vars.sumCollateral
             );
 
             // sumBorrowPlusEffects += oraclePrice * borrowBalance
-            vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(
+            vars.sumBorrowPlusEffects = mulScalarTruncateAddUInt(
                 vars.oraclePrice,
                 vars.borrowBalance,
                 vars.sumBorrowPlusEffects
@@ -940,7 +940,7 @@ contract Comptroller is
             if (asset == cTokenModify) {
                 // redeem effect
                 // sumBorrowPlusEffects += tokensToDenom * redeemTokens
-                vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(
+                vars.sumBorrowPlusEffects = mulScalarTruncateAddUInt(
                     vars.tokensToDenom,
                     redeemTokens,
                     vars.sumBorrowPlusEffects
@@ -948,7 +948,7 @@ contract Comptroller is
 
                 // borrow effect
                 // sumBorrowPlusEffects += oraclePrice * borrowAmount
-                vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(
+                vars.sumBorrowPlusEffects = mulScalarTruncateAddUInt(
                     vars.oraclePrice,
                     borrowAmount,
                     vars.sumBorrowPlusEffects
@@ -1017,7 +1017,7 @@ contract Comptroller is
         );
         ratio = div_(numerator, denominator);
 
-        seizeTokens = mul_ScalarTruncate(ratio, actualRepayAmount);
+        seizeTokens = mulScalarTruncate(ratio, actualRepayAmount);
 
         return (uint256(Error.NO_ERROR), seizeTokens);
     }
@@ -1762,6 +1762,6 @@ contract Comptroller is
      * @return The address of SPX
      */
     function getCompAddress() public view returns (address) {
-        return 0x8F67854497218043E1f72908FFE38D0Ed7F24721;
+        return 0x64542576AE2E77d847439Cca981d86E301fdBaE7;
     }
 }
