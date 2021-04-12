@@ -5,6 +5,7 @@ import "../CErc20.sol";
 import "../CToken.sol";
 import "../PriceOracle.sol";
 import "../EIP20Interface.sol";
+import "../Governance/GovernorAlpha.sol";
 import "../Governance/SpiralX.sol";
 
 interface ComptrollerLensInterface {
