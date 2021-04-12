@@ -920,10 +920,7 @@ contract Comptroller is
             vars.oraclePrice = Exp({mantissa: vars.oraclePriceMantissa});
 
             // Pre-compute a conversion factor from tokens -> ether (normalized price value)
-            vars.tokensToDenom = mul_(
-                mul_(vars.collateralFactor, vars.exchangeRate),
-                vars.oraclePrice
-            );
+            vars.tokensToDenom = mulExp3(vars.collateralFactor, vars.exchangeRate, vars.oraclePrice);
 
             // sumCollateral += tokensToDenom * cTokenBalance
             vars.sumCollateral = mulScalarTruncateAddUInt(
@@ -1009,18 +1006,27 @@ contract Comptroller is
         Exp memory numerator;
         Exp memory denominator;
         Exp memory ratio;
+        MathError mathErr;
 
-        numerator = mul_(
-            Exp({mantissa: liquidationIncentiveMantissa}),
-            Exp({mantissa: priceBorrowedMantissa})
-        );
-        denominator = mul_(
-            Exp({mantissa: priceCollateralMantissa}),
-            Exp({mantissa: exchangeRateMantissa})
-        );
-        ratio = div_(numerator, denominator);
+        (mathErr, numerator) = mulExp(liquidationIncentiveMantissa, priceBorrowedMantissa);
+        if (mathErr != MathError.NO_ERROR) {
+            return (uint(Error.MATH_ERROR), 0);
+        }
 
-        seizeTokens = mulScalarTruncate(ratio, actualRepayAmount);
+        (mathErr, denominator) = mulExp(priceCollateralMantissa, exchangeRateMantissa);
+        if (mathErr != MathError.NO_ERROR) {
+            return (uint(Error.MATH_ERROR), 0);
+        }
+
+        (mathErr, ratio) = divExp(numerator, denominator);
+        if (mathErr != MathError.NO_ERROR) {
+            return (uint(Error.MATH_ERROR), 0);
+        }
+
+        (mathErr, seizeTokens) = mulScalarTruncate(ratio, actualRepayAmount);
+        if (mathErr != MathError.NO_ERROR) {
+            return (uint(Error.MATH_ERROR), 0);
+        }
 
         return (uint256(Error.NO_ERROR), seizeTokens);
     }
