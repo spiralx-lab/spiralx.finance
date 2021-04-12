@@ -46,6 +46,9 @@ contract Comptroller is
         uint256 newLiquidationIncentiveMantissa
     );
 
+    /// @notice Emitted when maxAssets is changed by admin
+    event NewMaxAssets(uint oldMaxAssets, uint newMaxAssets);
+
     /// @notice Emitted when price oracle is changed
     event NewPriceOracle(
         PriceOracle oldPriceOracle,
@@ -1138,6 +1141,25 @@ contract Comptroller is
         );
 
         return uint256(Error.NO_ERROR);
+    }
+
+    /**
+      * @notice Sets maxAssets which controls how many markets can be entered
+      * @dev Admin function to set maxAssets
+      * @param newMaxAssets New max assets
+      * @return uint 0=success, otherwise a failure. (See ErrorReporter for details)
+      */
+    function _setMaxAssets(uint newMaxAssets) external returns (uint) {
+        // Check caller is admin
+        if (msg.sender != admin) {
+            return fail(Error.UNAUTHORIZED, FailureInfo.SET_MAX_ASSETS_OWNER_CHECK);
+        }
+
+        uint oldMaxAssets = maxAssets;
+        maxAssets = newMaxAssets;
+        emit NewMaxAssets(oldMaxAssets, newMaxAssets);
+
+        return uint(Error.NO_ERROR);
     }
 
     /**
