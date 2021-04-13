@@ -117,6 +117,12 @@ contract Comptroller is
     // No collateralFactorMantissa may exceed this value
     uint256 internal constant collateralFactorMaxMantissa = 0.9e18; // 0.9
 
+    // liquidationIncentiveMantissa must be no less than this value
+    uint internal constant liquidationIncentiveMinMantissa = 1.0e18; // 1.0
+
+    // liquidationIncentiveMantissa must be no greater than this value
+    uint internal constant liquidationIncentiveMaxMantissa = 1.8e18; // 1.8
+
     constructor() public {
         admin = msg.sender;
     }
@@ -1185,6 +1191,18 @@ contract Comptroller is
                     Error.UNAUTHORIZED,
                     FailureInfo.SET_LIQUIDATION_INCENTIVE_OWNER_CHECK
                 );
+        }
+
+         // Check de-scaled min <= newLiquidationIncentive <= max
+        Exp memory newLiquidationIncentive = Exp({mantissa: newLiquidationIncentiveMantissa});
+        Exp memory minLiquidationIncentive = Exp({mantissa: liquidationIncentiveMinMantissa});
+        if (lessThanExp(newLiquidationIncentive, minLiquidationIncentive)) {
+            return fail(Error.INVALID_LIQUIDATION_INCENTIVE, FailureInfo.SET_LIQUIDATION_INCENTIVE_VALIDATION);
+        }
+
+        Exp memory maxLiquidationIncentive = Exp({mantissa: liquidationIncentiveMaxMantissa});
+        if (lessThanExp(maxLiquidationIncentive, newLiquidationIncentive)) {
+            return fail(Error.INVALID_LIQUIDATION_INCENTIVE, FailureInfo.SET_LIQUIDATION_INCENTIVE_VALIDATION);
         }
 
         // Save current value for use in log
