@@ -282,22 +282,4 @@ contract MasterChef is Ownable {
             spx.transfer(_to, _amount);
         }
     }
-
-    function grantCompInternal(address _to, uint256 _amount)
-        internal
-        returns (uint256)
-    {
-        uint256 spxBalance = spx.balanceOf(address(this));
-        spxBalance = spxBalance.sub(userSPXAmount);
-        if (_amount <= spxBalance) {
-            spx.transfer(_to, _amount);
-            return 0;
-        }
-        return _amount;
-    }
-
-    function _grantComp(address recipient, uint256 amount) public onlyOwner {
-        uint256 amountLeft = grantCompInternal(recipient, amount);
-        require(amountLeft == 0, "insufficient SPX for grant");
-    }
 }

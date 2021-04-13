@@ -1664,40 +1664,7 @@ contract Comptroller is
         }
     }
 
-    /**
-     * @notice Transfer Compound to the user
-     * @dev Note: If there is not enough Compound, we do not perform the transfer all.
-     * @param user The address of the user to transfer Compound to
-     * @param amount The amount of Compound to (possibly) transfer
-     * @return The amount of Compound which was NOT transferred to the user
-     */
-    function grantCompInternal(address user, uint256 amount)
-        internal
-        returns (uint256)
-    {
-        SpiralX spx = SpiralX(getCompAddress());
-        uint256 compRemaining = spx.balanceOf(address(this));
-        if (amount <= compRemaining) {
-            spx.transfer(user, amount);
-            return 0;
-        }
-        return amount;
-    }
-
     /*** Compound Distribution Admin ***/
-
-    /**
-     * @notice Transfer Compound to the recipient
-     * @dev Note: If there is not enough Compound, we do not perform the transfer all.
-     * @param recipient The address of the recipient to transfer Compound to
-     * @param amount The amount of Compound to (possibly) transfer
-     */
-    function _grantComp(address recipient, uint256 amount) public {
-        require(adminOrInitializing(), "only admin can grant SPX");
-        uint256 amountLeft = grantCompInternal(recipient, amount);
-        require(amountLeft == 0, "insufficient SPX for grant");
-        emit CompGranted(recipient, amount);
-    }
 
     /**
      * @notice Set the amount of Compound distributed per block
