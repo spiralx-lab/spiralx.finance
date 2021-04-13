@@ -603,7 +603,6 @@ contract Comptroller is
         if (mathErr != MathError.NO_ERROR) {
             return uint(Error.MATH_ERROR);
         }
-
         if (repayAmount > maxClose) {
             return uint256(Error.TOO_MUCH_REPAY);
         }
@@ -1011,22 +1010,22 @@ contract Comptroller is
 
         (mathErr, numerator) = mulExp(liquidationIncentiveMantissa, priceBorrowedMantissa);
         if (mathErr != MathError.NO_ERROR) {
-            return (uint(Error.MATH_ERROR), 0);
+            return (uint256(Error.MATH_ERROR), 0);
         }
 
         (mathErr, denominator) = mulExp(priceCollateralMantissa, exchangeRateMantissa);
         if (mathErr != MathError.NO_ERROR) {
-            return (uint(Error.MATH_ERROR), 0);
+            return (uint256(Error.MATH_ERROR), 0);
         }
 
         (mathErr, ratio) = divExp(numerator, denominator);
         if (mathErr != MathError.NO_ERROR) {
-            return (uint(Error.MATH_ERROR), 0);
+            return (uint256(Error.MATH_ERROR), 0);
         }
 
         (mathErr, seizeTokens) = mulScalarTruncate(ratio, actualRepayAmount);
         if (mathErr != MathError.NO_ERROR) {
-            return (uint(Error.MATH_ERROR), 0);
+            return (uint256(Error.MATH_ERROR), 0);
         }
 
         return (uint256(Error.NO_ERROR), seizeTokens);
