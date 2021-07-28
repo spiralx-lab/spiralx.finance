@@ -157,7 +157,7 @@ contract SpiralXLens {
     }
 
     function cTokenUnderlyingPrice(CToken cToken)
-        public
+        public view
         returns (CTokenUnderlyingPrice memory)
     {
         ComptrollerLensInterface comptroller =
@@ -172,7 +172,7 @@ contract SpiralXLens {
     }
 
     function cTokenUnderlyingPriceAll(CToken[] calldata cTokens)
-        external
+        external view
         returns (CTokenUnderlyingPrice[] memory)
     {
         uint256 cTokenCount = cTokens.length;
@@ -193,7 +193,7 @@ contract SpiralXLens {
     function getAccountLimits(
         ComptrollerLensInterface comptroller,
         address account
-    ) public returns (AccountLimits memory) {
+    ) public view returns (AccountLimits memory) {
         (uint256 errorCode, uint256 liquidity, uint256 shortfall) =
             comptroller.getAccountLiquidity(account);
         require(errorCode == 0);

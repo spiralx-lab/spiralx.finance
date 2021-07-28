@@ -222,11 +222,11 @@ contract CTokenInterface is CTokenStorage {
     function supplyRatePerBlock() external view returns (uint);
     function totalBorrowsCurrent() external returns (uint);
     function borrowBalanceCurrent(address account) external returns (uint);
-    function borrowBalanceStored(address account) public view returns (uint);
-    function exchangeRateCurrent() public returns (uint);
-    function exchangeRateStored() public view returns (uint);
+    function borrowBalanceStored(address account) external view returns (uint);
+    function exchangeRateCurrent() external returns (uint);
+    function exchangeRateStored() external view returns (uint);
     function getCash() external view returns (uint);
-    function accrueInterest() public returns (uint);
+    function accrueInterest() external returns (uint);
     function seize(address liquidator, address borrower, uint seizeTokens) external returns (uint);
 
 
@@ -234,7 +234,7 @@ contract CTokenInterface is CTokenStorage {
 
     function _setPendingAdmin(address payable newPendingAdmin) external returns (uint);
     function _acceptAdmin() external returns (uint);
-    function _setComptroller(ComptrollerInterface newComptroller) public returns (uint);
+    function _setComptroller(ComptrollerInterface newComptroller) external returns (uint);
     function _setReserveFactor(uint newReserveFactorMantissa) external returns (uint);
     function _reduceReserves(uint reduceAmount) external returns (uint);
     function _setInterestRateModel(InterestRateModel newInterestRateModel) public returns (uint);
