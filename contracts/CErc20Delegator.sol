@@ -512,8 +512,8 @@ contract CErc20Delegator is
      * @param data The raw data to delegatecall
      * @return The returned bytes from the delegatecall
      */
-    function delegateToViewImplementation(bytes memory data)
-        public
+    function delegateToViewImplementation(bytes calldata data)
+        external
         view
         returns (bytes memory)
     {
