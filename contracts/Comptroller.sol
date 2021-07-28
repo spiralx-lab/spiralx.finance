@@ -1245,7 +1245,7 @@ contract Comptroller is
                 );
         }
 
-        cToken.isCToken(); // Sanity check to make sure its really a CToken
+        require(cToken.isCToken(), "This is not a CToken"); // Sanity check to make sure its really a CToken
 
         markets[address(cToken)] = Market({
             isListed: true,
