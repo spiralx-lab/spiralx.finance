@@ -103,25 +103,27 @@ contract Comptroller is
     event CompGranted(address recipient, uint256 amount);
 
     /// @notice The threshold above which the flywheel transfers SPX, in wei
-    uint256 public constant compClaimThreshold = 0.001e18;
+    uint256 public constant COMP_CLAIM_THRESHOLD = 0.001e18;
 
     /// @notice The initial SPX index for a market
-    uint224 public constant compInitialIndex = 1e36;
+    uint224 public constant COMP_INITIAL_INDEX = 1e36;
 
     // closeFactorMantissa must be strictly greater than this value
-    uint256 internal constant closeFactorMinMantissa = 0.05e18; // 0.05
+    uint256 internal constant CLOSE_FACTOR_MIN_MANTISSA = 0.05e18; // 0.05 
 
     // closeFactorMantissa must not exceed this value
-    uint256 internal constant closeFactorMaxMantissa = 0.9e18; // 0.9
+    uint256 internal constant CLOSE_FACTOR_MAX_MANTISSA = 0.9e18; // 0.9
 
     // No collateralFactorMantissa may exceed this value
-    uint256 internal constant collateralFactorMaxMantissa = 0.9e18; // 0.9
+    uint256 internal constant COLLATERAL_FACTOR_MAX_MANTISSA = 0.9e18; // 0.9
+
 
     // liquidationIncentiveMantissa must be no less than this value
-    uint internal constant liquidationIncentiveMinMantissa = 1.0e18; // 1.0
+    uint internal constant LIQUIDATION_INCENTIVE_MIN_MANTISSA = 1.0e18; // 1.0 
+    
 
     // liquidationIncentiveMantissa must be no greater than this value
-    uint internal constant liquidationIncentiveMaxMantissa = 1.8e18; // 1.8
+    uint internal constant LIQUIDATION_INCENTIVE_MAX_MANTISSA = 1.8e18; // 1.8
 
     constructor() public {
         admin = msg.sender;
@@ -1120,7 +1122,7 @@ contract Comptroller is
             Exp({mantissa: newCollateralFactorMantissa});
 
         // Check collateral factor <= 0.9
-        Exp memory highLimit = Exp({mantissa: collateralFactorMaxMantissa});
+        Exp memory highLimit = Exp({mantissa: COLLATERAL_FACTOR_MAX_MANTISSA});
         if (lessThanExp(highLimit, newCollateralFactorExp)) {
             return
                 fail(
@@ -1195,12 +1197,12 @@ contract Comptroller is
 
          // Check de-scaled min <= newLiquidationIncentive <= max
         Exp memory newLiquidationIncentive = Exp({mantissa: newLiquidationIncentiveMantissa});
-        Exp memory minLiquidationIncentive = Exp({mantissa: liquidationIncentiveMinMantissa});
+        Exp memory minLiquidationIncentive = Exp({mantissa: LIQUIDATION_INCENTIVE_MIN_MANTISSA});
         if (lessThanExp(newLiquidationIncentive, minLiquidationIncentive)) {
             return fail(Error.INVALID_LIQUIDATION_INCENTIVE, FailureInfo.SET_LIQUIDATION_INCENTIVE_VALIDATION);
         }
 
-        Exp memory maxLiquidationIncentive = Exp({mantissa: liquidationIncentiveMaxMantissa});
+        Exp memory maxLiquidationIncentive = Exp({mantissa: LIQUIDATION_INCENTIVE_MAX_MANTISSA});
         if (lessThanExp(maxLiquidationIncentive, newLiquidationIncentive)) {
             return fail(Error.INVALID_LIQUIDATION_INCENTIVE, FailureInfo.SET_LIQUIDATION_INCENTIVE_VALIDATION);
         }
@@ -1541,7 +1543,7 @@ contract Comptroller is
         compSupplierIndex[cToken][supplier] = supplyIndex.mantissa;
 
         if (supplierIndex.mantissa == 0 && supplyIndex.mantissa > 0) {
-            supplierIndex.mantissa = compInitialIndex;
+            supplierIndex.mantissa = COMP_INITIAL_INDEX;
         }
 
         Double memory deltaIndex = sub_(supplyIndex, supplierIndex);
@@ -1551,7 +1553,7 @@ contract Comptroller is
         compAccrued[supplier] = transferComp(
             supplier,
             supplierAccrued,
-            distributeAll ? 0 : compClaimThreshold
+            distributeAll ? 0 : COMP_CLAIM_THRESHOLD
         );
         emit DistributedSupplierComp(
             CToken(cToken),
@@ -1592,7 +1594,7 @@ contract Comptroller is
             compAccrued[borrower] = transferComp(
                 borrower,
                 borrowerAccrued,
-                distributeAll ? 0 : compClaimThreshold
+                distributeAll ? 0 : COMP_CLAIM_THRESHOLD
             );
             emit DistributedBorrowerComp(
                 CToken(cToken),
@@ -1725,7 +1727,7 @@ contract Comptroller is
             compSupplyState[cToken].block == 0
         ) {
             compSupplyState[cToken] = CompMarketState({
-                index: compInitialIndex,
+                index: COMP_INITIAL_INDEX,
                 block: safe32(getBlockNumber(), "block number exceeds 32 bits")
             });
         }
@@ -1735,7 +1737,7 @@ contract Comptroller is
             compBorrowState[cToken].block == 0
         ) {
             compBorrowState[cToken] = CompMarketState({
-                index: compInitialIndex,
+                index: COMP_INITIAL_INDEX,
                 block: safe32(getBlockNumber(), "block number exceeds 32 bits")
             });
         }
