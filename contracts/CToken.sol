@@ -513,7 +513,7 @@ contract CToken is CTokenInterface, Exponential, TokenErrorReporter {
                 reservesPrior
             );
         require(
-            borrowRateMantissa <= borrowRateMaxMantissa,
+            borrowRateMantissa <= BORROW_RATE_MAX_MANTISSA,
             "borrow rate is absurdly high"
         );
 
@@ -1824,7 +1824,7 @@ contract CToken is CTokenInterface, Exponential, TokenErrorReporter {
         }
 
         // Check newReserveFactor ≤ maxReserveFactor
-        if (newReserveFactorMantissa > reserveFactorMaxMantissa) {
+        if (newReserveFactorMantissa > RESERVE_FACTOR_MAX_MANTISSA) {
             return
                 fail(
                     Error.BAD_INPUT,

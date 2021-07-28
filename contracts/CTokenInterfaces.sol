@@ -28,12 +28,12 @@ contract CTokenStorage {
      * @notice Maximum borrow rate that can ever be applied (.0005% / block)
      */
 
-    uint internal constant borrowRateMaxMantissa = 0.0005e16;
+    uint internal constant BORROW_RATE_MAX_MANTISSA = 0.0005e16; 
 
     /**
      * @notice Maximum fraction of interest that can be set aside for reserves
      */
-    uint internal constant reserveFactorMaxMantissa = 1e18;
+    uint internal constant RESERVE_FACTOR_MAX_MANTISSA = 1e18; 
 
     /**
      * @notice Administrator for this contract
@@ -237,7 +237,7 @@ contract CTokenInterface is CTokenStorage {
     function _setComptroller(ComptrollerInterface newComptroller) external returns (uint);
     function _setReserveFactor(uint newReserveFactorMantissa) external returns (uint);
     function _reduceReserves(uint reduceAmount) external returns (uint);
-    function _setInterestRateModel(InterestRateModel newInterestRateModel) public returns (uint);
+    function _setInterestRateModel(InterestRateModel newInterestRateModel) external returns (uint);
 }
 
 contract CErc20Storage {
@@ -284,7 +284,7 @@ contract CDelegatorInterface is CDelegationStorage {
      * @param allowResign Flag to indicate whether to call _resignImplementation on the old implementation
      * @param becomeImplementationData The encoded bytes data to be passed to _becomeImplementation
      */
-    function _setImplementation(address implementation_, bool allowResign, bytes memory becomeImplementationData) public;
+    function _setImplementation(address implementation_, bool allowResign, bytes calldata becomeImplementationData) external;
 }
 
 contract CDelegateInterface is CDelegationStorage {
@@ -293,10 +293,10 @@ contract CDelegateInterface is CDelegationStorage {
      * @dev Should revert if any issues arise which make it unfit for delegation
      * @param data The encoded bytes data for any initialization
      */
-    function _becomeImplementation(bytes memory data) public;
+    function _becomeImplementation(bytes calldata data) external;
 
     /**
      * @notice Called by the delegator on a delegate to forfeit its responsibility
      */
-    function _resignImplementation() public;
+    function _resignImplementation() external;
 }
