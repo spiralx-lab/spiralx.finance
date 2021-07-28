@@ -336,10 +336,6 @@ contract Comptroller is
         actualMintAmount;
         mintTokens;
 
-        // Shh - we don't ever want this hook to be marked pure
-        if (false) {
-            maxAssets = maxAssets;
-        }
     }
 
     /**
@@ -504,10 +500,6 @@ contract Comptroller is
         borrower;
         borrowAmount;
 
-        // Shh - we don't ever want this hook to be marked pure
-        if (false) {
-            maxAssets = maxAssets;
-        }
     }
 
     /**
@@ -562,10 +554,6 @@ contract Comptroller is
         actualRepayAmount;
         borrowerIndex;
 
-        // Shh - we don't ever want this hook to be marked pure
-        if (false) {
-            maxAssets = maxAssets;
-        }
     }
 
     /**
@@ -638,10 +626,6 @@ contract Comptroller is
         actualRepayAmount;
         seizeTokens;
 
-        // Shh - we don't ever want this hook to be marked pure
-        if (false) {
-            maxAssets = maxAssets;
-        }
     }
 
     /**
@@ -709,10 +693,6 @@ contract Comptroller is
         borrower;
         seizeTokens;
 
-        // Shh - we don't ever want this hook to be marked pure
-        if (false) {
-            maxAssets = maxAssets;
-        }
     }
 
     /**
@@ -766,10 +746,7 @@ contract Comptroller is
         dst;
         transferTokens;
 
-        // Shh - we don't ever want this hook to be marked pure
-        if (false) {
-            maxAssets = maxAssets;
-        }
+
     }
 
     /*** Liquidity/Liquidation Calculations ***/
