@@ -13,7 +13,7 @@ import "./Governance/SpiralX.sol";
  * @author Compound
  */
 contract Comptroller is
-    ComptrollerV4Storage,
+    ComptrollerV5Storage,
     ComptrollerInterface,
     ComptrollerErrorReporter,
     ExponentialNoError
@@ -64,14 +64,11 @@ contract Comptroller is
     /// @notice Emitted when an action is paused on a market
     event ActionPaused(CToken cToken, string action, bool pauseState);
 
-    /// @notice Emitted when market comped status is changed
-    event MarketComped(CToken cToken, bool isComped);
-
-    /// @notice Emitted when SPX rate is changed
-    event NewCompRate(uint256 oldCompRate, uint256 newCompRate);
-
     /// @notice Emitted when a new SPX speed is calculated for a market
     event CompSpeedUpdated(CToken indexed cToken, uint256 newSpeed);
+
+    /// @notice Emitted when a new SPX speed is set for a contributor
+    event ContributorCompSpeedUpdated(address indexed contributor, uint newSpeed);
 
     /// @notice Emitted when SPX is distributed to a supplier
     event DistributedSupplierComp(
@@ -1363,47 +1360,40 @@ contract Comptroller is
     /*** Compound Distribution ***/
 
     /**
-     * @notice Recalculate and update Compound speeds for all Compound markets
+     * @notice Set COMP speed for a single market
+     * @param cToken The market whose COMP speed to update
+     * @param compSpeed New COMP speed for market
      */
-    function refreshCompSpeeds() external {
-        require(
-            msg.sender == tx.origin,
-            "only externally owned accounts may refresh speeds"
-        );
-        refreshCompSpeedsInternal();
-    }
-
-    function refreshCompSpeedsInternal() internal {
-        CToken[] memory allMarkets_ = allMarkets;
-
-        for (uint256 i = 0; i < allMarkets_.length; i++) {
-            CToken cToken = allMarkets_[i];
+    function setCompSpeedInternal(CToken cToken, uint compSpeed) internal {
+        uint currentCompSpeed = compSpeeds[address(cToken)];
+        if (currentCompSpeed != 0) {
+            // note that COMP speed could be set to 0 to halt liquidity rewards for a market
             Exp memory borrowIndex = Exp({mantissa: cToken.borrowIndex()});
             updateCompSupplyIndex(address(cToken));
             updateCompBorrowIndex(address(cToken), borrowIndex);
-        }
+        } else if (compSpeed != 0) {
+            // Add the COMP market
+            Market storage market = markets[address(cToken)];
+            require(market.isListed == true, "comp market is not listed");
 
-        Exp memory totalUtility = Exp({mantissa: 0});
-        Exp[] memory utilities = new Exp[](allMarkets_.length);
-        for (uint256 i = 0; i < allMarkets_.length; i++) {
-            CToken cToken = allMarkets_[i];
-            if (markets[address(cToken)].isComped) {
-                Exp memory assetPrice =
-                    Exp({mantissa: oracle.getUnderlyingPrice(cToken)});
-                Exp memory utility = mul_(assetPrice, cToken.totalBorrows());
-                utilities[i] = utility;
-                totalUtility = add_(totalUtility, utility);
+            if (compSupplyState[address(cToken)].index == 0 && compSupplyState[address(cToken)].block == 0) {
+                compSupplyState[address(cToken)] = CompMarketState({
+                    index: COMP_INITIAL_INDEX,
+                    block: safe32(getBlockNumber(), "block number exceeds 32 bits")
+                });
+            }
+
+            if (compBorrowState[address(cToken)].index == 0 && compBorrowState[address(cToken)].block == 0) {
+                compBorrowState[address(cToken)] = CompMarketState({
+                    index: COMP_INITIAL_INDEX,
+                    block: safe32(getBlockNumber(), "block number exceeds 32 bits")
+                });
             }
         }
 
-        for (uint256 i = 0; i < allMarkets_.length; i++) {
-            CToken cToken = allMarkets[i];
-            uint256 newSpeed =
-                totalUtility.mantissa > 0
-                    ? mul_(compRate, div_(utilities[i], totalUtility))
-                    : 0;
-            compSpeeds[address(cToken)] = newSpeed;
-            emit CompSpeedUpdated(cToken, newSpeed);
+        if (currentCompSpeed != compSpeed) {
+            compSpeeds[address(cToken)] = compSpeed;
+            emit CompSpeedUpdated(cToken, compSpeed);
         }
     }
 
@@ -1550,6 +1540,24 @@ contract Comptroller is
     }
 
     /**
+     * @notice Calculate additional accrued COMP for a contributor since last accrual
+     * @param contributor The address to calculate contributor rewards for
+     */
+    function updateContributorRewards(address contributor) public {
+        uint compSpeed = compContributorSpeeds[contributor];
+        uint blockNumber = getBlockNumber();
+        uint deltaBlocks = sub_(blockNumber, lastContributorBlock[contributor]);
+        if (deltaBlocks > 0 && compSpeed > 0) {
+            uint newAccrued = mul_(deltaBlocks, compSpeed);
+            uint contributorAccrued = add_(compAccrued[contributor], newAccrued);
+
+            compAccrued[contributor] = contributorAccrued;
+            lastContributorBlock[contributor] = blockNumber;
+        }
+    }
+
+
+    /**
      * @notice Transfer Compound to the user, if they are above the threshold
      * @dev Note: If there is not enough Compound, we do not perform the transfer all.
      * @param user The address of the user to transfer Compound to
@@ -1617,12 +1625,14 @@ contract Comptroller is
                         borrowIndex,
                         true
                     );
+                    compAccrued[holders[j]] = grantCompInternal(holders[j], compAccrued[holders[j]]);
                 }
             }
             if (suppliers == true) {
                 updateCompSupplyIndex(address(cToken));
                 for (uint256 j = 0; j < holders.length; j++) {
                     distributeSupplierComp(address(cToken), holders[j], true);
+                    compAccrued[holders[j]] = grantCompInternal(holders[j], compAccrued[holders[j]]);
                 }
             }
         }
@@ -1661,77 +1671,35 @@ contract Comptroller is
     }
 
 
-    /**
-     * @notice Set the amount of Compound distributed per block
-     * @param compRate_ The amount of Compound wei per block to distribute
+     /**
+     * @notice Set COMP speed for a single market
+     * @param cToken The market whose COMP speed to update
+     * @param compSpeed New COMP speed for market
      */
-    function _setCompRate(uint256 compRate_) external {
-        require(adminOrInitializing(), "only admin can change SPX rate");
-
-        uint256 oldRate = compRate;
-        compRate = compRate_;
-        emit NewCompRate(oldRate, compRate_);
-
-        refreshCompSpeedsInternal();
+    function _setCompSpeed(CToken cToken, uint compSpeed) external {
+        require(adminOrInitializing(), "only admin can set comp speed");
+        setCompSpeedInternal(cToken, compSpeed);
     }
 
     /**
-     * @notice Add markets to compMarkets, allowing them to earn Compound in the flywheel
-     * @param cTokens The addresses of the markets to add
+     * @notice Set COMP speed for a single contributor
+     * @param contributor The contributor whose COMP speed to update
+     * @param compSpeed New COMP speed for contributor
      */
-    function _addCompMarkets(address[] calldata cTokens) external {
-        require(adminOrInitializing(), "only admin can add SPX market");
+    function _setContributorCompSpeed(address contributor, uint compSpeed) external {
+        require(adminOrInitializing(), "only admin can set comp speed");
 
-        for (uint256 i = 0; i < cTokens.length; i++) {
-            _addCompMarketInternal(cTokens[i]);
+        // note that COMP speed could be set to 0 to halt liquidity rewards for a contributor
+        updateContributorRewards(contributor);
+        if (compSpeed == 0) {
+            // release storage
+            delete lastContributorBlock[contributor];
+        } else {
+            lastContributorBlock[contributor] = getBlockNumber();
         }
+        compContributorSpeeds[contributor] = compSpeed;
 
-        refreshCompSpeedsInternal();
-    }
-
-    function _addCompMarketInternal(address cToken) internal {
-        Market storage market = markets[cToken];
-        require(market.isListed == true, "SPX market is not listed");
-        require(market.isComped == false, "SPX market already added");
-
-        market.isComped = true;
-        emit MarketComped(CToken(cToken), true);
-
-        if (
-            compSupplyState[cToken].index == 0 &&
-            compSupplyState[cToken].block == 0
-        ) {
-            compSupplyState[cToken] = CompMarketState({
-                index: COMP_INITIAL_INDEX,
-                block: safe32(getBlockNumber(), "block number exceeds 32 bits")
-            });
-        }
-
-        if (
-            compBorrowState[cToken].index == 0 &&
-            compBorrowState[cToken].block == 0
-        ) {
-            compBorrowState[cToken] = CompMarketState({
-                index: COMP_INITIAL_INDEX,
-                block: safe32(getBlockNumber(), "block number exceeds 32 bits")
-            });
-        }
-    }
-
-    /**
-     * @notice Remove a market from compMarkets, preventing it from earning Compound in the flywheel
-     * @param cToken The address of the market to drop
-     */
-    function _dropCompMarket(address cToken) external {
-        require(msg.sender == admin, "only admin can drop SPX market");
-
-        Market storage market = markets[cToken];
-        require(market.isComped == true, "market is not a SPX market");
-
-        market.isComped = false;
-        emit MarketComped(CToken(cToken), false);
-
-        refreshCompSpeedsInternal();
+        emit ContributorCompSpeedUpdated(contributor, compSpeed);
     }
 
     /**
@@ -1752,6 +1720,6 @@ contract Comptroller is
      * @return The address of SPX
      */
     function getCompAddress() public pure returns (address) {
-        return 0x8F67854497218043E1f72908FFE38D0Ed7F24721;
+        return 0x490c27426A2a521e6a624a520585938Af3381913;
     }
 }
