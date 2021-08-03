@@ -2,7 +2,6 @@ pragma solidity ^0.5.16;
 
 import "./CToken.sol";
 import "./ErrorReporter.sol";
-import "./Exponential.sol";
 import "./PriceOracle.sol";
 import "./ComptrollerInterface.sol";
 import "./ComptrollerStorage.sol";
@@ -17,7 +16,7 @@ contract Comptroller is
     ComptrollerV4Storage,
     ComptrollerInterface,
     ComptrollerErrorReporter,
-    Exponential
+    ExponentialNoError
 {
     /// @notice Emitted when an admin supports a market
     event MarketListed(CToken cToken);
@@ -103,25 +102,27 @@ contract Comptroller is
     event CompGranted(address recipient, uint256 amount);
 
     /// @notice The threshold above which the flywheel transfers SPX, in wei
-    uint256 public constant compClaimThreshold = 0.001e18;
+    uint256 public constant COMP_CLAIM_THRESHOLD = 0.001e18;
 
     /// @notice The initial SPX index for a market
-    uint224 public constant compInitialIndex = 1e36;
+    uint224 public constant COMP_INITIAL_INDEX = 1e36;
 
     // closeFactorMantissa must be strictly greater than this value
-    uint256 internal constant closeFactorMinMantissa = 0.05e18; // 0.05
+    uint256 internal constant CLOSE_FACTOR_MIN_MANTISSA = 0.05e18; // 0.05 
 
     // closeFactorMantissa must not exceed this value
-    uint256 internal constant closeFactorMaxMantissa = 0.9e18; // 0.9
+    uint256 internal constant CLOSE_FACTOR_MAX_MANTISSA = 0.9e18; // 0.9
 
     // No collateralFactorMantissa may exceed this value
-    uint256 internal constant collateralFactorMaxMantissa = 0.9e18; // 0.9
+    uint256 internal constant COLLATERAL_FACTOR_MAX_MANTISSA = 0.9e18; // 0.9
+
 
     // liquidationIncentiveMantissa must be no less than this value
-    uint internal constant liquidationIncentiveMinMantissa = 1.0e18; // 1.0
+    uint internal constant LIQUIDATION_INCENTIVE_MIN_MANTISSA = 1.0e18; // 1.0 
+    
 
     // liquidationIncentiveMantissa must be no greater than this value
-    uint internal constant liquidationIncentiveMaxMantissa = 1.8e18; // 1.8
+    uint internal constant LIQUIDATION_INCENTIVE_MAX_MANTISSA = 1.8e18; // 1.8
 
     constructor() public {
         admin = msg.sender;
@@ -163,8 +164,8 @@ contract Comptroller is
      * @param cTokens The list of addresses of the cToken markets to be enabled
      * @return Success indicator for whether each corresponding market was entered
      */
-    function enterMarkets(address[] memory cTokens)
-        public
+    function enterMarkets(address[] calldata cTokens)
+        external
         returns (uint256[] memory)
     {
         uint256 len = cTokens.length;
@@ -196,7 +197,7 @@ contract Comptroller is
             return Error.MARKET_NOT_LISTED;
         }
 
-        if (marketToJoin.accountMembership[borrower] == true) {
+        if (marketToJoin.accountMembership[borrower]) {
             // already joined
             return Error.NO_ERROR;
         }
@@ -335,10 +336,6 @@ contract Comptroller is
         actualMintAmount;
         mintTokens;
 
-        // Shh - we don't ever want this hook to be marked pure
-        if (false) {
-            maxAssets = maxAssets;
-        }
     }
 
     /**
@@ -503,10 +500,6 @@ contract Comptroller is
         borrower;
         borrowAmount;
 
-        // Shh - we don't ever want this hook to be marked pure
-        if (false) {
-            maxAssets = maxAssets;
-        }
     }
 
     /**
@@ -561,10 +554,6 @@ contract Comptroller is
         actualRepayAmount;
         borrowerIndex;
 
-        // Shh - we don't ever want this hook to be marked pure
-        if (false) {
-            maxAssets = maxAssets;
-        }
     }
 
     /**
@@ -605,10 +594,7 @@ contract Comptroller is
         /* The liquidator may not repay more than what is allowed by the closeFactor */
         uint256 borrowBalance =
             CToken(cTokenBorrowed).borrowBalanceStored(borrower);
-        (MathError mathErr, uint maxClose) = mulScalarTruncate(Exp({mantissa: closeFactorMantissa}), borrowBalance);
-        if (mathErr != MathError.NO_ERROR) {
-            return uint(Error.MATH_ERROR);
-        }
+        uint maxClose = mul_ScalarTruncate(Exp({mantissa: closeFactorMantissa}), borrowBalance);
         if (repayAmount > maxClose) {
             return uint256(Error.TOO_MUCH_REPAY);
         }
@@ -640,10 +626,6 @@ contract Comptroller is
         actualRepayAmount;
         seizeTokens;
 
-        // Shh - we don't ever want this hook to be marked pure
-        if (false) {
-            maxAssets = maxAssets;
-        }
     }
 
     /**
@@ -711,10 +693,6 @@ contract Comptroller is
         borrower;
         seizeTokens;
 
-        // Shh - we don't ever want this hook to be marked pure
-        if (false) {
-            maxAssets = maxAssets;
-        }
     }
 
     /**
@@ -768,10 +746,7 @@ contract Comptroller is
         dst;
         transferTokens;
 
-        // Shh - we don't ever want this hook to be marked pure
-        if (false) {
-            maxAssets = maxAssets;
-        }
+
     }
 
     /*** Liquidity/Liquidation Calculations ***/
@@ -801,7 +776,7 @@ contract Comptroller is
      *          account shortfall below collateral requirements)
      */
     function getAccountLiquidity(address account)
-        public
+        external
         view
         returns (
             uint256,
@@ -850,7 +825,7 @@ contract Comptroller is
         uint256 redeemTokens,
         uint256 borrowAmount
     )
-        public
+        external
         view
         returns (
             uint256,
@@ -896,7 +871,6 @@ contract Comptroller is
     {
         AccountLiquidityLocalVars memory vars; // Holds all our calculation results
         uint256 oErr;
-        MathError mErr;
 
         // For each asset the account is in
         CToken[] memory assets = accountAssets[account];
@@ -927,38 +901,24 @@ contract Comptroller is
             vars.oraclePrice = Exp({mantissa: vars.oraclePriceMantissa});
 
             // Pre-compute a conversion factor from tokens -> ether (normalized price value)
-            (mErr, vars.tokensToDenom) = mulExp3(vars.collateralFactor, vars.exchangeRate, vars.oraclePrice);
-            if (mErr != MathError.NO_ERROR) {
-                return (Error.MATH_ERROR, 0, 0);
-            }
-
-               // sumCollateral += tokensToDenom * cTokenBalance
-            (mErr, vars.sumCollateral) = mulScalarTruncateAddUInt(vars.tokensToDenom, vars.cTokenBalance, vars.sumCollateral);
-            if (mErr != MathError.NO_ERROR) {
-                return (Error.MATH_ERROR, 0, 0);
-            }
+            vars.tokensToDenom = mul_(mul_(vars.collateralFactor, vars.exchangeRate), vars.oraclePrice);
+           
+            // sumCollateral += tokensToDenom * cTokenBalance
+            vars.sumCollateral = mul_ScalarTruncateAddUInt(vars.tokensToDenom, vars.cTokenBalance, vars.sumCollateral);
+            
 
             // sumBorrowPlusEffects += oraclePrice * borrowBalance
-            (mErr, vars.sumBorrowPlusEffects) = mulScalarTruncateAddUInt(vars.oraclePrice, vars.borrowBalance, vars.sumBorrowPlusEffects);
-            if (mErr != MathError.NO_ERROR) {
-                return (Error.MATH_ERROR, 0, 0);
-            }
+            vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(vars.oraclePrice, vars.borrowBalance, vars.sumBorrowPlusEffects);
 
             // Calculate effects of interacting with cTokenModify
             if (asset == cTokenModify) {
                 // redeem effect
                 // sumBorrowPlusEffects += tokensToDenom * redeemTokens
-                (mErr, vars.sumBorrowPlusEffects) = mulScalarTruncateAddUInt(vars.tokensToDenom, redeemTokens, vars.sumBorrowPlusEffects);
-                if (mErr != MathError.NO_ERROR) {
-                    return (Error.MATH_ERROR, 0, 0);
-                }
-
+                vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(vars.tokensToDenom, redeemTokens, vars.sumBorrowPlusEffects);
+                
                 // borrow effect
                 // sumBorrowPlusEffects += oraclePrice * borrowAmount
-                (mErr, vars.sumBorrowPlusEffects) = mulScalarTruncateAddUInt(vars.oraclePrice, borrowAmount, vars.sumBorrowPlusEffects);
-                if (mErr != MathError.NO_ERROR) {
-                    return (Error.MATH_ERROR, 0, 0);
-                }
+                vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(vars.oraclePrice, borrowAmount, vars.sumBorrowPlusEffects);
             }
         }
 
@@ -1012,27 +972,13 @@ contract Comptroller is
         Exp memory numerator;
         Exp memory denominator;
         Exp memory ratio;
-        MathError mathErr;
 
-        (mathErr, numerator) = mulExp(liquidationIncentiveMantissa, priceBorrowedMantissa);
-        if (mathErr != MathError.NO_ERROR) {
-            return (uint256(Error.MATH_ERROR), 0);
-        }
+        numerator = mul_(Exp({mantissa: liquidationIncentiveMantissa}), Exp({mantissa: priceBorrowedMantissa}));
+        denominator = mul_(Exp({mantissa: priceCollateralMantissa}), Exp({mantissa: exchangeRateMantissa}));
+        ratio = div_(numerator, denominator);
 
-        (mathErr, denominator) = mulExp(priceCollateralMantissa, exchangeRateMantissa);
-        if (mathErr != MathError.NO_ERROR) {
-            return (uint256(Error.MATH_ERROR), 0);
-        }
 
-        (mathErr, ratio) = divExp(numerator, denominator);
-        if (mathErr != MathError.NO_ERROR) {
-            return (uint256(Error.MATH_ERROR), 0);
-        }
-
-        (mathErr, seizeTokens) = mulScalarTruncate(ratio, actualRepayAmount);
-        if (mathErr != MathError.NO_ERROR) {
-            return (uint256(Error.MATH_ERROR), 0);
-        }
+        seizeTokens = mul_ScalarTruncate(ratio, actualRepayAmount);
 
         return (uint256(Error.NO_ERROR), seizeTokens);
     }
@@ -1044,7 +990,7 @@ contract Comptroller is
      * @dev Admin function to set a new price oracle
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
-    function _setPriceOracle(PriceOracle newOracle) public returns (uint256) {
+    function _setPriceOracle(PriceOracle newOracle) external returns (uint256) {
         // Check caller is admin
         if (msg.sender != admin) {
             return
@@ -1120,7 +1066,7 @@ contract Comptroller is
             Exp({mantissa: newCollateralFactorMantissa});
 
         // Check collateral factor <= 0.9
-        Exp memory highLimit = Exp({mantissa: collateralFactorMaxMantissa});
+        Exp memory highLimit = Exp({mantissa: COLLATERAL_FACTOR_MAX_MANTISSA});
         if (lessThanExp(highLimit, newCollateralFactorExp)) {
             return
                 fail(
@@ -1195,12 +1141,12 @@ contract Comptroller is
 
          // Check de-scaled min <= newLiquidationIncentive <= max
         Exp memory newLiquidationIncentive = Exp({mantissa: newLiquidationIncentiveMantissa});
-        Exp memory minLiquidationIncentive = Exp({mantissa: liquidationIncentiveMinMantissa});
+        Exp memory minLiquidationIncentive = Exp({mantissa: LIQUIDATION_INCENTIVE_MIN_MANTISSA});
         if (lessThanExp(newLiquidationIncentive, minLiquidationIncentive)) {
             return fail(Error.INVALID_LIQUIDATION_INCENTIVE, FailureInfo.SET_LIQUIDATION_INCENTIVE_VALIDATION);
         }
 
-        Exp memory maxLiquidationIncentive = Exp({mantissa: liquidationIncentiveMaxMantissa});
+        Exp memory maxLiquidationIncentive = Exp({mantissa: LIQUIDATION_INCENTIVE_MAX_MANTISSA});
         if (lessThanExp(maxLiquidationIncentive, newLiquidationIncentive)) {
             return fail(Error.INVALID_LIQUIDATION_INCENTIVE, FailureInfo.SET_LIQUIDATION_INCENTIVE_VALIDATION);
         }
@@ -1243,7 +1189,7 @@ contract Comptroller is
                 );
         }
 
-        cToken.isCToken(); // Sanity check to make sure its really a CToken
+        require(cToken.isCToken(), "This is not a CToken"); // Sanity check to make sure its really a CToken
 
         markets[address(cToken)] = Market({
             isListed: true,
@@ -1317,7 +1263,7 @@ contract Comptroller is
      * @return uint 0=success, otherwise a failure. (See enum Error for details)
      */
     function _setPauseGuardian(address newPauseGuardian)
-        public
+        external
         returns (uint256)
     {
         if (msg.sender != admin) {
@@ -1340,7 +1286,7 @@ contract Comptroller is
         return uint256(Error.NO_ERROR);
     }
 
-    function _setMintPaused(CToken cToken, bool state) public returns (bool) {
+    function _setMintPaused(CToken cToken, bool state) external returns (bool) {
         require(
             markets[address(cToken)].isListed,
             "cannot pause a market that is not listed"
@@ -1356,7 +1302,7 @@ contract Comptroller is
         return state;
     }
 
-    function _setBorrowPaused(CToken cToken, bool state) public returns (bool) {
+    function _setBorrowPaused(CToken cToken, bool state) external returns (bool) {
         require(
             markets[address(cToken)].isListed,
             "cannot pause a market that is not listed"
@@ -1372,7 +1318,7 @@ contract Comptroller is
         return state;
     }
 
-    function _setTransferPaused(bool state) public returns (bool) {
+    function _setTransferPaused(bool state) external returns (bool) {
         require(
             msg.sender == pauseGuardian || msg.sender == admin,
             "only pause guardian and admin can pause"
@@ -1384,7 +1330,7 @@ contract Comptroller is
         return state;
     }
 
-    function _setSeizePaused(bool state) public returns (bool) {
+    function _setSeizePaused(bool state) external returns (bool) {
         require(
             msg.sender == pauseGuardian || msg.sender == admin,
             "only pause guardian and admin can pause"
@@ -1396,7 +1342,7 @@ contract Comptroller is
         return state;
     }
 
-    function _become(Unitroller unitroller) public {
+    function _become(Unitroller unitroller) external {
         require(
             msg.sender == unitroller.admin(),
             "only unitroller admin can change brains"
@@ -1419,7 +1365,7 @@ contract Comptroller is
     /**
      * @notice Recalculate and update Compound speeds for all Compound markets
      */
-    function refreshCompSpeeds() public {
+    function refreshCompSpeeds() external {
         require(
             msg.sender == tx.origin,
             "only externally owned accounts may refresh speeds"
@@ -1541,7 +1487,7 @@ contract Comptroller is
         compSupplierIndex[cToken][supplier] = supplyIndex.mantissa;
 
         if (supplierIndex.mantissa == 0 && supplyIndex.mantissa > 0) {
-            supplierIndex.mantissa = compInitialIndex;
+            supplierIndex.mantissa = COMP_INITIAL_INDEX;
         }
 
         Double memory deltaIndex = sub_(supplyIndex, supplierIndex);
@@ -1551,7 +1497,7 @@ contract Comptroller is
         compAccrued[supplier] = transferComp(
             supplier,
             supplierAccrued,
-            distributeAll ? 0 : compClaimThreshold
+            distributeAll ? 0 : COMP_CLAIM_THRESHOLD
         );
         emit DistributedSupplierComp(
             CToken(cToken),
@@ -1592,7 +1538,7 @@ contract Comptroller is
             compAccrued[borrower] = transferComp(
                 borrower,
                 borrowerAccrued,
-                distributeAll ? 0 : compClaimThreshold
+                distributeAll ? 0 : COMP_CLAIM_THRESHOLD
             );
             emit DistributedBorrowerComp(
                 CToken(cToken),
@@ -1630,7 +1576,7 @@ contract Comptroller is
      * @notice Claim all the Compound accrued by holder in all markets
      * @param holder The address to claim Compound for
      */
-    function claimComp(address holder) public {
+    function claimComp(address holder) external {
         return claimComp(holder, allMarkets);
     }
 
@@ -1681,14 +1627,45 @@ contract Comptroller is
             }
         }
     }
+    
+    /**
+     * @notice Transfer Compound to the user
+     * @dev Note: If there is not enough Compound, we do not perform the transfer all.
+     * @param user The address of the user to transfer Compound to
+     * @param amount The amount of Compound to (possibly) transfer
+     * @return The amount of Compound which was NOT transferred to the user
+     */
+    function grantCompInternal(address user, uint256 amount) internal returns (uint256){
+        SpiralX spx = SpiralX(getCompAddress());
+        uint256 compRemaining = spx.balanceOf(address(this));
+        if (amount > 0 && amount <= compRemaining) {
+            spx.transfer(user, amount);
+            return 0;
+        }
+        return amount;
+    }
 
     /*** Compound Distribution Admin ***/
+
+    /**
+     * @notice Transfer Compound to the recipient
+     * @dev Note: If there is not enough Compound, we do not perform the transfer all.
+     * @param recipient The address of the recipient to transfer Compound to
+     * @param amount The amount of Compound to (possibly) transfer
+     */
+    function _grantComp(address recipient, uint256 amount) public {
+        require(adminOrInitializing(), "only admin can grant SPX");
+        uint256 amountLeft = grantCompInternal(recipient, amount);
+        require(amountLeft == 0, "insufficient SPX for grant");
+        emit CompGranted(recipient, amount);
+    }
+
 
     /**
      * @notice Set the amount of Compound distributed per block
      * @param compRate_ The amount of Compound wei per block to distribute
      */
-    function _setCompRate(uint256 compRate_) public {
+    function _setCompRate(uint256 compRate_) external {
         require(adminOrInitializing(), "only admin can change SPX rate");
 
         uint256 oldRate = compRate;
@@ -1702,7 +1679,7 @@ contract Comptroller is
      * @notice Add markets to compMarkets, allowing them to earn Compound in the flywheel
      * @param cTokens The addresses of the markets to add
      */
-    function _addCompMarkets(address[] memory cTokens) public {
+    function _addCompMarkets(address[] calldata cTokens) external {
         require(adminOrInitializing(), "only admin can add SPX market");
 
         for (uint256 i = 0; i < cTokens.length; i++) {
@@ -1725,7 +1702,7 @@ contract Comptroller is
             compSupplyState[cToken].block == 0
         ) {
             compSupplyState[cToken] = CompMarketState({
-                index: compInitialIndex,
+                index: COMP_INITIAL_INDEX,
                 block: safe32(getBlockNumber(), "block number exceeds 32 bits")
             });
         }
@@ -1735,7 +1712,7 @@ contract Comptroller is
             compBorrowState[cToken].block == 0
         ) {
             compBorrowState[cToken] = CompMarketState({
-                index: compInitialIndex,
+                index: COMP_INITIAL_INDEX,
                 block: safe32(getBlockNumber(), "block number exceeds 32 bits")
             });
         }
@@ -1745,7 +1722,7 @@ contract Comptroller is
      * @notice Remove a market from compMarkets, preventing it from earning Compound in the flywheel
      * @param cToken The address of the market to drop
      */
-    function _dropCompMarket(address cToken) public {
+    function _dropCompMarket(address cToken) external {
         require(msg.sender == admin, "only admin can drop SPX market");
 
         Market storage market = markets[cToken];
@@ -1762,7 +1739,7 @@ contract Comptroller is
      * @dev The automatic getter may be used to access an individual market.
      * @return The list of market addresses
      */
-    function getAllMarkets() public view returns (CToken[] memory) {
+    function getAllMarkets() external view returns (CToken[] memory) {
         return allMarkets;
     }
 
